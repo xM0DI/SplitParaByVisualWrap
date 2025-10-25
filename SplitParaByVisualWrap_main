@@ -1,0 +1,56 @@
+function splitParagraphByVisualWrapStyled() {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+  const cell = sheet.getActiveCell();
+  const text = cell.getValue();
+  const col = cell.getColumn();
+  const row = cell.getRow();
+
+  if (!text) {
+    SpreadsheetApp.getActive().toast("Selected cell is empty!");
+    return;
+  }
+
+  const colWidth = sheet.getColumnWidth(col);
+  const font = cell.getFontFamily() || "Arial";
+  const fontSize = cell.getFontSize() || 10;
+  const fontColor = cell.getFontColor() || "#000000";
+
+  // Estimate average pixel width per character based on font size
+  const pxPerChar = (fontSize / 10) * 7;
+  const charsPerLine = Math.max(5, Math.floor(colWidth / pxPerChar));
+
+  // Split into lines based on width
+  const words = text.split(/\s+/);
+  let lines = [];
+  let currentLine = "";
+
+  for (let i = 0; i < words.length; i++) {
+    const testLine = currentLine ? currentLine + " " + words[i] : words[i];
+    if (testLine.length > charsPerLine) {
+      lines.push(currentLine);
+      currentLine = words[i];
+    } else {
+      currentLine = testLine;
+    }
+  }
+  if (currentLine) lines.push(currentLine);
+
+  // Clear existing content below
+  const lastRow = sheet.getLastRow();
+  if (lastRow > row) {
+    sheet.getRange(row + 1, col, lastRow - row).clearContent();
+  }
+
+  // Apply text and style to each new line
+  lines.forEach((line, i) => {
+    const target = sheet.getRange(row + i, col);
+    target.setValue(line);
+    target.setFontFamily(font);
+    target.setFontSize(fontSize);
+    target.setFontColor(fontColor);
+  });
+
+  SpreadsheetApp.getActive().toast(
+    `Done! Wrapped into ${lines.length} rows with font preserved.`
+  );
+}
